@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+
+if [ "$3" = "/" ]; then
+  launchctl load /Library/LaunchDaemons/com.github.managedmac-managedprinters-check.plist
+fi
+
+exit 0
