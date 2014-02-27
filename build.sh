@@ -4,7 +4,7 @@
 IDENTIFIER="com.github.managedmac"
 MMVERS=0.1
 
-GITREV=`git log -n1 --format="%H" -- source`
+GITREV=`git log -n1 --format="%H" -- .`
 GITREVINDEX=`git rev-list --reverse HEAD | grep -n $GITREV | cut -d: -f1`
 VERSION=$MMVERS.$GITREVINDEX.0
 
