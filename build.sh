@@ -15,10 +15,10 @@ mkdir -p "$TMPROOT"/usr/local/managedmac
 mkdir -p "$TMPROOT"/usr/local/managedmac/mmlib
 mkdir -p "$TMPROOT"/Library/LaunchDaemons
 
-cp -a source/managedprinters "$TMPROOT"/usr/local/managedmac
+cp -a source/managedmac "$TMPROOT"/usr/local/managedmac
 cp -a source/mmlib/*.py "$TMPROOT"/usr/local/managedmac/mmlib
-cp -a launchd/LaunchDaemons/com.github.managedmac-managedprinters-check.plist "$TMPROOT"/Library/LaunchDaemons
+cp -a launchd/LaunchDaemons/com.github.managedmac-auto.plist "$TMPROOT"/Library/LaunchDaemons
 
-pkgbuild --root "$TMPROOT" --identifier "$IDENTIFIER" --version "$VERSION" --install-location / --scripts launchd/scripts managedmac.pkg
+pkgbuild --root "$TMPROOT" --identifier "$IDENTIFIER" --version "$VERSION" --install-location / --scripts package_scripts managedmac.pkg
 
 rm -rf "$TMPROOT"
