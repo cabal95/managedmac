@@ -2,7 +2,7 @@
 #
 
 if [ "$3" = "/" ]; then
-  launchctl load /Library/LaunchDaemons/com.github.managedmac-managedprinters-check.plist
+  launchctl load /Library/LaunchDaemons/com.github.managedmac-auto.plist
 fi
 
 exit 0

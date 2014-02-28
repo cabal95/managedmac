@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.github.managedmac-managedprinters-check</string>
+  <string>com.github.managedmac-auto</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/local/managedmac/managedprinters</string>
+    <string>/usr/local/managedmac/managedmac</string>
   </array>
   <key>StartInterval</key>
   <integer>3600</integer>
