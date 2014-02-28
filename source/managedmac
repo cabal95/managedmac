@@ -1,0 +1,86 @@
+#!/usr/bin/python
+#
+# Copyright 2014 Daniel Hazelbaker.
+#
+# Licensed under the Apache License, Version 2.0 (the 'License');
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an 'AS IS' BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""
+managedmac
+"""
+import sys
+import time
+import os
+import md5
+import imp
+import traceback
+
+from mmlib import mmcommon
+
+
+def main():
+    """
+    Main processing function.
+    """
+    plugin_path = os.path.dirname(os.path.abspath(__file__)) + '/plugins'
+
+    mmcommon.prepare()
+#    mmcommon.log_console = True
+    mmcommon.log("Beginning processing")
+    mmcommon.updateRepo()
+
+    try:
+        modules = os.listdir(plugin_path + '/actions')
+    except:
+        modules = None
+    if modules is not None:
+        for p in modules:
+            if p.endswith('.py'):
+                try:
+                    mod = load_module(plugin_path + '/actions/' + p)
+                    mmcommon.log('Running action ' + p)
+                    mmcommon.log_module_name = p
+                    mod.run()
+                    mmcommon.log_module_name = 'Core'
+                    mmcommon.log('Completed action ' + p)
+                except Exception, e:
+                    mmcommon.log_module_name = 'Core'
+                    mmcommon.log('Action ' + p + ' failed: ' + traceback.format_exc())
+    else:
+        mmcommon.log('No action modules available')
+
+    mmcommon.log("Finished processing")
+    sys.exit(0)
+
+
+def load_module(code_path):
+    """
+    Dynamically load some python code and return it as a module that can
+    be referenced.
+    Taken from: http://code.davidjanes.com/blog/2008/11/27/how-to-dynamically-load-python-code/
+    """
+    try:
+        try:
+            code_dir = os.path.dirname(code_path)
+            code_file = os.path.basename(code_path)
+
+            fin = open(code_path, 'rb')
+
+            return imp.load_source(md5.new(code_path).hexdigest(), code_path, fin)
+        finally:
+            try: fin.close()
+            except: pass
+    except:
+        return None
+
+
+main()
+

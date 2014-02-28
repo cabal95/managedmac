@@ -37,15 +37,11 @@ MANAGED_MAC_MANIFESTDIR = MANAGED_MAC_DIR + "/manifests"
 MANAGED_MAC_CATALOG_PLIST = MANAGED_MAC_CATALOGDIR + "/client_catalog.plist"
 MANAGED_MAC_MANIFEST_PLIST = MANAGED_MAC_MANIFESTDIR + "/client_manifest.plist"
 
-app_id = ""
 log_console = False
+log_module_name = 'Core'
 
 
 def prepare(needRoot = True):
-    global app_id
-
-    app_id = os.path.basename(sys.argv[0])
-
     #
     # If the tool needs to be run as root, verify.
     #
@@ -63,19 +59,6 @@ def prepare(needRoot = True):
         createPath(MANAGED_MAC_MANIFESTDIR)
 
 
-def updateRepo():
-    """
-    Try to download the latest changes from the repository.
-    """
-    if downloadManifest() == True:
-        try:
-            dict = clientManifest()
-            if dict != None and "catalogs" in dict:
-                downloadCatalog(dict["catalogs"][0])
-        except:
-            pass
-    
-
 def createPath(path):
     if os.path.exists(path) == False:
         try:
@@ -83,20 +66,6 @@ def createPath(path):
         except:
             print "Could not create " + path + " and folder does not exist. Cannot continue."
             sys.exit(1)
-
-
-def clientManifest():
-    try:
-        return readDictionary(MANAGED_MAC_MANIFEST_PLIST)
-    except:
-        return None
-
-
-def clientCatalog():
-    try:
-        return readDictionary(MANAGED_MAC_CATALOG_PLIST)
-    except:
-        return None
 
 
 def readDictionary(filepath):
@@ -113,55 +82,6 @@ def writeDictionary(dict, filepath):
     """
     dictObj = NSDictionary.dictionaryWithDictionary_(dict)
     dictObj.writeToFile_atomically_(filepath, 1)
-
-
-def downloadCatalog(catalog):
-    """
-    Download the named catalog from the repository.
-    """
-    url = pref("RepoURL") + "/catalogs/" + catalog
-    log("Downloading catalog from " + url)
-    try:
-        download(url, MANAGED_MAC_CATALOG_PLIST)
-    except Exception, e:
-        log("Download failed: " + str(e))
-        return False
-
-    return True
-
-
-def downloadManifest():
-    """
-    Download the client manifest.
-    """
-    baseurl = pref("RepoURL") + "/manifests/"
-
-    #
-    # Make a list of the identifiers to try.
-    #
-    if pref("ClientIdentifier") == "":
-        hostname = platform.node()
-        identifiers = [ hostname ]
-        if hostname.find('.') != -1:
-            identifiers += [ hostname.split(".")[0] ]
-        identifiers += [ systemSerialNumber(), "site_default" ]
-    else:
-        identifiers = [ pref("ClientIdentifier") ]
-
-    #
-    # Try each of the identifiers until we find one that works.
-    #
-    for identifier in identifiers:
-        url = baseurl + identifier
-        log("Downloading manifest from " + url)
-        try:
-            download(url, MANAGED_MAC_MANIFEST_PLIST)
-            return True
-        except Exception, e:
-            log("Download failed: " + str(e))
-            pass
-
-    return False
 
 
 def download(url, destination_path = None):
@@ -242,9 +162,9 @@ def pref(pref_name, default = None):
 def log(message):
     timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %I:%M:%S] ")
     if log_console:
-        print timestamp + app_id + ": " + message
+        print timestamp + log_module_name + ": " + message
     with open(MANAGED_MAC_LOGFILE, "a") as fp:
-        fp.write(timestamp + app_id + ": " + message + "\n")
+        fp.write(timestamp + log_module_name + ": " + message + "\n")
 
     statinfo = os.stat(MANAGED_MAC_LOGFILE)
     if statinfo.st_size > 1000000:
@@ -257,3 +177,184 @@ def log(message):
             os.rename(MANAGED_MAC_LOGFILE, MANAGED_MAC_LOGFILE + ".0")
         except:
             pass
+
+
+def valueForKeyPath(dict, keypath, default = None):
+    """
+    Get the keypath value of the specified dictionary.
+    """
+    keys = keypath.split('.')
+    for key in keys:
+        if key not in dict:
+            return default
+        dict = dict[key]
+
+    return dict
+
+
+def updateRepo():
+    """
+    Download the manifest and catalogs for this client.
+    """
+    getManifest()
+    processManifestKeyPath(None, None, None, None)
+
+
+MANIFESTS = {}
+def getManifest(manifest_name = None):
+    """
+    Download a client manifest.
+    """
+    global MANIFESTS
+    baseurl = pref("RepoURL") + '/manifests/'
+
+    if manifest_name is None:
+        if 'client_manifest' in MANIFESTS:
+            return MANIFESTS['client_manifest']
+
+        #
+        # Make a list of the identifiers to try.
+        #
+        if pref('ClientIdentifier') == "":
+            hostname = platform.node()
+            identifiers = [ hostname ]
+            if hostname.find('.') != -1:
+                identifiers += [ hostname.split(".")[0] ]
+            identifiers += [ systemSerialNumber(), "site_default" ]
+        else:
+            identifiers = [ pref("ClientIdentifier") ]
+
+        #
+        # Try each of the identifiers until we find one that works.
+        #
+        for identifier in identifiers:
+            url = baseurl + identifier
+            log("Downloading manifest from " + url)
+            try:
+                download(url, MANAGED_MAC_MANIFEST_PLIST)
+                data = readDictionary(MANAGED_MAC_MANIFEST_PLIST)
+                if data is not None:
+                    MANIFESTS['client_manifest'] = data
+                return data
+            except Exception, e:
+                log("Download failed: " + str(e))
+                pass
+
+        #
+        # Try to use the local copy instead.
+        #
+        try:
+            data = readDictionary(MANAGED_MAC_MANIFEST_PLIST)
+            if data is not None:
+                MANIFESTS['client_manifest'] = data
+            return data
+        except:
+            MANIFESTS['client_manifest'] = None
+            return None
+    else:
+        url = baseurl + manifest_name
+        path = MANAGED_MAC_MANIFESTDIR + '/' + manifest_name
+
+        if manifest_name in MANIFESTS:
+            return MANIFESTS[manifest_name]
+
+        log('Downloading manifest from ' + url)
+        try:
+            download(url, path)
+        except Exception, e:
+            log("Download failed: " + str(e))
+
+        try:
+            data = readDictionary(path)
+            if data is not None:
+                MANIFESTS[manifest_name] = data
+            return data
+        except:
+            MANIFESTS[manifest_name] = None
+            return None
+
+
+CATALOGS = {}
+def getCatalog(catalog_name = None):
+    """
+    Download a catalog.
+    """
+    global CATALOGS
+    baseurl = pref("RepoURL") + '/catalogs/'
+    url = baseurl + catalog_name
+    path = MANAGED_MAC_CATALOGDIR + '/' + catalog_name
+
+    if catalog_name in CATALOGS:
+        return CATALOGS[catalog_name]
+
+    log('Downloading catalog from ' + url)
+    try:
+        download(url, path)
+    except Exception, e:
+        log("Download failed: " + str(e))
+
+    try:
+        data = readDictionary(path)
+        if data is not None:
+            CATALOGS[catalog_name] = data
+        return data
+    except:
+        CATALOGS[catalog_name] = None
+        return None
+
+
+def getCatalogs(cataloglist):
+    """
+    Download all the catalogs listed.
+    """
+
+    for catalog in cataloglist:
+        getCatalog(catalog)
+
+
+def processManifestKeyPath(manifest_name, keypath, runinfo, handler, parentcatalogs = None):
+    """
+    Process the all the values of keypath in the manifest. For each
+    item call the handler. Recursively checks included manifests.
+    """
+
+    manifest = getManifest(manifest_name)
+    if manifest is None:
+        return None
+
+    cataloglist = manifest.get('catalogs')
+    if cataloglist:
+        getCatalogs(cataloglist)
+    elif parentcatalogs:
+        cataloglist = parentcatalogs
+
+    #
+    # Check for nested manifests
+    #
+    if 'included_manifests' in manifest:
+        for item in manifest['included_manifests']:
+            processManifestKeyPath(item, keypath, runinfo, handler, cataloglist)
+
+    #
+    # Process the keys.
+    #
+    if keypath is not None:
+        items = valueForKeyPath(manifest, keypath)
+        if items is not None:
+            for item in items:
+                handler(item, cataloglist, runinfo)
+
+
+def getFirstCatalogKeyPath(cataloglist, keypath, default = None):
+    """
+    Get the value of the keypath in the first catalog containing it.
+    """
+    for name in cataloglist:
+        catalog = getCatalog(name)
+        if catalog is not None:
+            value = valueForKeyPath(catalog, keypath)
+            if value is not None:
+                return value
+
+    return default
+
