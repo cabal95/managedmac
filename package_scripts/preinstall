@@ -3,7 +3,8 @@
 
 if [ "$3" = "/" ]; then
   if [ -e /Library/LaunchDaemons/com.github.managedmac-managedprinters-check.plist ]; then
-  launchctl unload /Library/LaunchDaemons/com.github.managedmac-managedprinters-check.plist
+    launchctl unload /Library/LaunchDaemons/com.github.managedmac-managedprinters-check.plist
+  fi
 fi
 
 exit 0
