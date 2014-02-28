@@ -123,7 +123,7 @@ def downloadCatalog(catalog):
     log("Downloading catalog from " + url)
     try:
         download(url, MANAGED_MAC_CATALOG_PLIST)
-    except Exception as e:
+    except Exception, e:
         log("Download failed: " + str(e))
         return False
 
@@ -157,7 +157,7 @@ def downloadManifest():
         try:
             download(url, MANAGED_MAC_MANIFEST_PLIST)
             return True
-        except Exception as e:
+        except Exception, e:
             log("Download failed: " + str(e))
             pass
 

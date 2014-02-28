@@ -112,7 +112,7 @@ def setOptions(printer_name, options):
             args += [ '-o', key + "=" + options[key] ]
         with open(os.devnull, 'w') as fnull:
             status = subprocess.call(args, stdout=fnull, stderr=subprocess.STDOUT)
-    except Exception as e:
+    except Exception, e:
         print str(e)
         return False
 

@@ -78,7 +78,7 @@ def processUninstalls(catalog, uninstalls):
                 if printers.delete(pname) == False:
                     raise RuntimeWarning("Unknown error trying to delete printer");
                 mmcommon.log("Printer " + pname + " removed.")
-        except Exception as e:
+        except Exception, e:
             mmcommon.log("Error trying to remove printer " + pname + ". Error = " + str(e))
 
 
@@ -132,7 +132,7 @@ def processInstalls(catalog, installs):
             # Wait for any existing jobs to clear.
             #
             if printers.hasJobs(pname):
-                if systemIdleTimer() > 120 or printers.jobCount(pname) > 2:
+                if mmcommon.systemIdleTimer() > 120 or printers.jobCount(pname) > 2:
                     mmcommon.log("Printer " + pname + " is in use and will be updated later.")
                     continue
 
@@ -187,7 +187,7 @@ def processInstalls(catalog, installs):
                 raise
             finally:
                 os.remove(ppdfile)
-        except Exception as e:
+        except Exception, e:
             mmcommon.log("Encountered an error trying to install printer " + pname + ": " + str(e))
         finally:
             if exists:
