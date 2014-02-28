@@ -44,10 +44,11 @@ then the system will use the following list in order to aquire a manifest:
 3. Serial Number
 4. "site_default"
 
-Each manifest must reference one or more catalogs, though at the time of this
-writing only the first catalog specified will be used. There are plans to
-allow multiple catalogs to be referenced and have them merged into a single
-catalog automatically.
+Each manifest must reference one or more catalogs. The catalogs will be
+searched in order and the first one to have the information needed will be
+the one to provide it. A manifest can also include another manifest via the
+*included_manifests* key. Both these features should resemble the way munki
+provides multiple manifests and catalogs.
 
 ## Sample Manifest
 
@@ -59,6 +60,10 @@ catalog automatically.
 	<key>catalogs</key>
 	<array>
 		<string>production</string>
+	</array>
+	<key>included_manifests</key>
+	<array>
+		<string>site_default</string>
 	</array>
 	<key>ManagedPrinters</key>
 	<dict>
