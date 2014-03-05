@@ -22,6 +22,7 @@ import os
 import md5
 import imp
 import traceback
+import optparse
 
 from mmlib import mmcommon
 
@@ -32,8 +33,17 @@ def main():
     """
     plugin_path = os.path.dirname(os.path.abspath(__file__)) + '/plugins'
 
+    p = optparse.OptionParser()
+    p.set_usage("""Usage: %prog [options]""")
+    p.add_option('--verbose', '-v', action='store_true',
+            help="""More verbose output.""")
+    options, unused_arguments = p.parse_args()
+
     mmcommon.prepare()
-#    mmcommon.log_console = True
+
+    if options.verbose:
+        mmcommon.log_console = True
+
     mmcommon.log("Beginning processing")
     mmcommon.updateRepo()
 
