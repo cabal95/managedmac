@@ -160,7 +160,7 @@ def pref(pref_name, default = None):
 
 
 def log(message):
-    timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %I:%M:%S] ")
+    timestamp = datetime.datetime.now().strftime("[%Y-%m-%d %H:%M:%S] ")
     if log_console:
         print timestamp + log_module_name + ": " + message
     with open(MANAGED_MAC_LOGFILE, "a") as fp:
@@ -341,8 +341,11 @@ def processManifestKeyPath(manifest_name, keypath, runinfo, handler, parentcatal
     if keypath is not None:
         items = valueForKeyPath(manifest, keypath)
         if items is not None:
-            for item in items:
-                handler(item, cataloglist, runinfo)
+            try:
+                for item in items:
+                    handler(item, cataloglist, runinfo)
+            except TypeError:
+                handler(items, cataloglist, runinfo)
 
 
 def getFirstCatalogKeyPath(cataloglist, keypath, default = None):
