@@ -215,14 +215,16 @@ def getManifest(manifest_name = None):
         #
         # Make a list of the identifiers to try.
         #
-        if pref('ClientIdentifier') == "":
+        identifiers = [ ]
+        if pref('ClientIdentifier') == "" or pref('UniqueIdentifiersFirst') == True:
             hostname = platform.node()
             identifiers = [ hostname ]
             if hostname.find('.') != -1:
                 identifiers += [ hostname.split(".")[0] ]
+        if pref('Clientidentifier') == "":
             identifiers += [ systemSerialNumber(), "site_default" ]
-        else:
-            identifiers = [ pref("ClientIdentifier") ]
+        if pref('ClientIdentifier') != "":
+            identifiers += [ pref("ClientIdentifier") ]
 
         #
         # Try each of the identifiers until we find one that works.
