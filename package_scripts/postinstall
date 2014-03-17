@@ -2,7 +2,10 @@
 #
 
 if [ "$3" = "/" ]; then
-  launchctl load /Library/LaunchDaemons/com.github.managedmac-auto.plist
+  exists=`launchctl list | grep com.github.managedmac-auto`
+  if [ -z "$exists" ]; then
+    launchctl load /Library/LaunchDaemons/com.github.managedmac-auto.plist
+  fi
 fi
 
 exit 0
