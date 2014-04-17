@@ -221,7 +221,7 @@ def getManifest(manifest_name = None):
             identifiers = [ hostname ]
             if hostname.find('.') != -1:
                 identifiers += [ hostname.split(".")[0] ]
-        if pref('Clientidentifier') == "":
+        if pref('ClientIdentifier') == "":
             identifiers += [ systemSerialNumber(), "site_default" ]
         if pref('ClientIdentifier') != "":
             identifiers += [ pref("ClientIdentifier") ]
