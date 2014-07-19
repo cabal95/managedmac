@@ -17,6 +17,7 @@
 setup_timemachine.py
 """
 import sys
+import socket
 import time
 import os
 import subprocess
@@ -46,11 +47,13 @@ def processTM(pref):
             mmcommon.log('Could not determine system UUID')
             return
 
+        # Get the short hostname.
+        cpu_name = socket.gethostname().split('.')[0]
+
         # Get the OD computer name of the system, required.
         od_name = getODName(uuid)
         if od_name is None:
-            mmcommon.log('Could not determine OD system name')
-            return
+            od_name = cpu_name
 
         server = pref.get('Server')
         share = pref.get('Share')
@@ -59,6 +62,7 @@ def processTM(pref):
         enable = pref.get('Enable')
 
         user = user.replace("$ODNAME", od_name)
+        user = user.replace("$CPUNAME", cpu_name)
 
         # Perform actual setup of TimeMachine.
         url = 'afp://' + user + ':' + password + '@' + server + '/' + share
