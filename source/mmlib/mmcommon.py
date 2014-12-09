@@ -314,6 +314,26 @@ def getCatalogs(cataloglist):
         getCatalog(catalog)
 
 
+def processManualRun(manifest_name, runinfo, handler, userinfo, parentcatalogs = None):
+    """
+    Emulate a run of manifest keys for a single userinfo value. This
+    is used to allow the system to get the manifest and catalog info
+    and have it ready for the handler
+    """
+
+    manifest = getManifest(manifest_name)
+    if manifest is None:
+        return None
+
+    cataloglist = manifest.get('catalogs')
+    if cataloglist:
+        getCatalogs(cataloglist)
+    elif parentcatalogs:
+        cataloglist = parentcatalogs
+
+    handler(userinfo, cataloglist, runinfo)
+
+
 def processManifestKeyPath(manifest_name, keypath, runinfo, handler, parentcatalogs = None):
     """
     Process the all the values of keypath in the manifest. For each

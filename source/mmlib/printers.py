@@ -62,13 +62,18 @@ def ppdInfo(filename):
     return info
 
 
-def add(printer_name, uri, ppd, location):
+def add(printer_name, uri, ppd, location, description):
     """
     Add a new printer to the system with the given parameters.
     """
     try:
+        if ppd[:4] == 'drv:':
+            type = '-m'
+        else:
+            type = '-P'
+
         with open(os.devnull, "w") as fnull:
-            args = ["lpadmin", "-p", printer_name, "-v", uri, "-P", ppd, "-L", location, "-E"]
+            args = ["lpadmin", "-p", printer_name, "-v", uri, type, ppd, "-D", description, "-L", location, "-E"]
             status = subprocess.call(args, stdout=fnull, stderr=subprocess.STDOUT)
     except:
         return False

@@ -25,33 +25,64 @@ from mmlib import printers
 
 
 MANAGED_PRINTERS_STATUS_PLIST = mmcommon.MANAGED_MAC_DIR + "/PrinterStatus.plist"
+MANAGED_PRINTERS_PLIST = mmcommon.MANAGED_MAC_DIR + "/ManagedPrinters.plist"
+MANAGED_PRINTERS_USERLIST_DIR = mmcommon.MANAGED_MAC_DIR + "/ManagedPrinters/UserPrinters"
 
 
 def run():
     """
     Main processing function.
     """
+    installinfo = { }
+    uninstallinfo = { }
 
-    mmcommon.processManifestKeyPath(None, 'ManagedPrinters.Uninstall', { }, processUninstall)
-    mmcommon.processManifestKeyPath(None, 'ManagedPrinters.Install', { }, processInstall)
+    # Process user selections (e.g. via munki)
+    files = [f for f in os.listdir(MANAGED_PRINTERS_USERLIST_DIR) if os.path.isfile(os.path.join(MANAGED_PRINTERS_USERLIST_DIR, f))]
+    for p in files:
+        mmcommon.processManualRun(None, installinfo, processUserInstall, p)
+    for p in userPrinters():
+        if p not in files:
+            mmcommon.processManualRun(None, uninstallinfo, processUserUninstall, p)
+
+    # Process system mandated items
+    mmcommon.processManifestKeyPath(None, 'ManagedPrinters.Uninstall', uninstallinfo, processSystemUninstall)
+    mmcommon.processManifestKeyPath(None, 'ManagedPrinters.Install', installinfo, processSystemInstall)
 
 
-def processUninstall(pname, cataloglist, runinfo):
+def processUserUninstall(pname, cataloglist, runinfo):
+    processUninstall(pname, cataloglist, True, runinfo)
+
+
+def processSystemUninstall(pname, cataloglist, runinfo):
+    processUninstall(pname, cataloglist, False, runinfo)
+
+
+def processUninstall(pname, cataloglist, asuser, runinfo):
     """
     Go through all the printers listed and try to remove them
     from the system.
     """
     try:
         if printers.exists(pname):
-            mmcommon.log('Printer " + pname + " has been marked for uninstall.')
+            mmcommon.log('Printer ' + pname + ' has been marked for uninstall.')
             if printers.delete(pname) == False:
                 raise RuntimeWarning('Unknown error trying to delete printer');
             mmcommon.log('Printer ' + pname + ' removed.')
+            if asuser:
+                removedUserPrinter(pname);
     except Exception, e:
         mmcommon.log('Error trying to remove printer ' + pname + '. Error = ' + str(e))
 
 
-def processInstall(pname, cataloglist, runinfo):
+def processUserInstall(pname, cataloglist, runinfo):
+    processInstall(pname, cataloglist, True, runinfo)
+
+
+def processSystemInstall(pname, cataloglist, runinfo):
+    processInstall(pname, cataloglist, False, runinfo)
+
+
+def processInstall(pname, cataloglist, asuser, runinfo):
     """
     Go through all the printers listed and try to add them into
     the system. A printer is only added if the printer type does
@@ -75,6 +106,10 @@ def processInstall(pname, cataloglist, runinfo):
     deviceUri = data['DeviceURI']
     location = data["Location"]
     ppdUrl = data["PPDURL"]
+    try:
+        description = data['Description']
+    except:
+        description = pname
 
     if exists:
         #
@@ -139,8 +174,11 @@ def processInstall(pname, cataloglist, runinfo):
         #
         # Try to download the new PPD.
         #
-        mmcommon.log("Downloading PPD from " + ppdUrl)
-        ppdfile = mmcommon.download(ppdUrl)
+        if ppdUrl[:4] == 'drv:':
+            ppdfile = ppdUrl
+        else:
+            mmcommon.log("Downloading PPD from " + ppdUrl)
+            ppdfile = mmcommon.download(ppdUrl)
 
         #
         # Build up any options.
@@ -154,16 +192,19 @@ def processInstall(pname, cataloglist, runinfo):
         # Add the printer.
         #
         try:
-            if printers.add(pname, deviceUri, ppdfile, location) == False:
+            if printers.add(pname, deviceUri, ppdfile, location, description) == False:
                 raise RuntimeWarning("Failed to add printer.")
             if options != None and printers.setOptions(pname, options) == False:
                 raise RuntimeWarning("Failed to set options for printer.")
             printerLastUpdate(pname, data["LastUpdate"])
             mmcommon.log("Printer " + pname + " has been installed.")
+            if asuser:
+                addedUserPrinter(pname);
         except:
             raise
         finally:
-            os.remove(ppdfile)
+            if ppdfile[:1] == '/':
+                os.remove(ppdfile)
     except Exception, e:
         mmcommon.log("Encountered an error trying to install printer " + pname + ": " + str(e))
     finally:
@@ -200,4 +241,38 @@ def printerLastUpdate(printer_name, value = None):
             raise
 
         return value
+
+
+def userPrinters():
+    dict = mmcommon.readDictionary(MANAGED_PRINTERS_PLIST)
+    if dict is None:
+        return []
+    if "UserPrinters" not in dict:
+        return []
+
+    return dict["UserPrinters"]
+
+
+def addedUserPrinter(pname):
+    dict = mmcommon.readDictionary(MANAGED_PRINTERS_PLIST)
+    if dict is None:
+        dict = { }
+    if "UserPrinters" not in dict:
+        dict["UserPrinters"] = [ ]
+
+    if pname not in dict["UserPrinters"]:
+        dict["UserPrinters"] += [pname]
+        mmcommon.writeDictionary(dict, MANAGED_PRINTERS_PLIST)
+
+
+def removedUserPrinter(pname):
+    dict = mmcommon.readDictionary(MANAGED_PRINTERS_PLIST)
+    if dict is None:
+        return
+    if "UserPrinters" not in dict:
+        return
+
+    if pname in dict["UserPrinters"]:
+        dict["UserPrinters"] = [p for p in dict["UserPrinters"] if p != pname]
+        mmcommon.writeDictionary(dict, MANAGED_PRINTERS_PLIST)
 
