@@ -37,7 +37,10 @@ def run():
     uninstallinfo = { }
 
     # Process user selections (e.g. via munki)
-    files = [f for f in os.listdir(MANAGED_PRINTERS_USERLIST_DIR) if os.path.isfile(os.path.join(MANAGED_PRINTERS_USERLIST_DIR, f))]
+    try:
+        files = [f for f in os.listdir(MANAGED_PRINTERS_USERLIST_DIR) if os.path.isfile(os.path.join(MANAGED_PRINTERS_USERLIST_DIR, f))]
+    except:
+        files = []
     for p in files:
         mmcommon.processManualRun(None, installinfo, processUserInstall, p)
     for p in userPrinters():
